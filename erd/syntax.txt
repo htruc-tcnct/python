@@ -1,0 +1,45 @@
+Table users {
+  id uuid [primary key]
+  name varchar
+  email varchar [unique, note: 'User email for login']
+  password_hash varchar
+  created_at timestamp
+}
+
+Table chats {
+  id uuid [primary key]
+  user_id uuid [not null, note: 'Owner of the chat']
+  title varchar
+  created_at timestamp
+}
+
+Table chat_turns {
+  id uuid [primary key]
+  chat_id uuid [not null, note: 'Belongs to a chat']
+  turn_number integer [note: 'Order of the conversation turn in the chat']
+  created_at timestamp
+}
+
+Table chatbot_messages {
+  id uuid [primary key]
+  chat_turn_id uuid [not null, note: 'Belongs to a chat turn']
+  sender varchar [note: 'user or bot']
+  message_text text [note: 'Content of the message']
+  created_at timestamp
+}
+
+Table images {
+  id uuid [primary key]
+  chat_turn_id uuid [not null, note: 'Belongs to a chat turn']
+  sender varchar [note: 'user or bot']
+  prompt_text text [note: 'User input for image generation']
+  image_url text [note: 'Generated image URL']
+  created_at timestamp
+}
+
+// Relationships
+Ref: chats.user_id > users.id // A user can have multiple chats
+Ref: chat_turns.chat_id > chats.id // A chat can have multiple chat turns
+Ref: chatbot_messages.chat_turn_id > chat_turns.id // A chat turn can have multiple chatbot messages
+Ref: images.chat_turn_id > chat_turns.id // A chat turn can have multiple images
+

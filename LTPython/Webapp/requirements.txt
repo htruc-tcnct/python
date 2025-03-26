@@ -1,0 +1,10 @@
+# requirements.txt
+Django>=4.2,<5.0  # Phiên bản Django bạn đang dùng (có thể điều chỉnh)
+djangorestframework>=3.14,<4.0  # Django REST Framework
+PyMySQL>=1.1,<2.0  # Để kết nối MySQL
+PyJWT>=2.8,<3.0  # Để xử lý JWT
+cryptography>=3.4,<4.0 
+python-decouple>=3.5,<4.0
+django-cors-headers>=3.8,<4.0
+
+djangorestframework-simplejwt>=5.0,<6.0  # Để xử lý JWT

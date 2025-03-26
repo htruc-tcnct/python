@@ -1,0 +1,11 @@
+.custom-placeholder::placeholder {
+    color: #b0b0b0 !important;
+    /* Thay đổi thành màu mong muốn */
+    opacity: 1;
+    /* Đảm bảo placeholder không bị mờ đi */
+}
+.hover-button:hover{
+    background-color: var(--light-color) !important;
+    color: #000 !important;
+    
+}

@@ -1,0 +1,43 @@
+:root {
+    --bgmain-color: #181a1b;
+    /* Màu nền chính */
+}
+
+.home-container {
+    padding: 50px;
+}
+
+.image-container {
+    max-width: 500px;
+}
+
+.image-container img {
+    width: 100%;
+    border-radius: 15px;
+}
+li{
+    font-size: 0.8rem;
+}
+.step-number {
+    width: 20px;
+    /* Kích thước cố định */
+    height: 20px;
+    background-color: #008CFF;
+    /* Màu xanh */
+    color: white;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    /* Biến nó thành hình tròn */
+    font-size: 0.6rem;
+    flex-shrink: 0;
+    /* Ngăn nó bị méo khi nằm trong flex container */
+}
+.gradient-text {
+    background: linear-gradient(to right, #ff6ec7, #007bff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+}
