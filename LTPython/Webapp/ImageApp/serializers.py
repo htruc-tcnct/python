@@ -27,6 +27,13 @@ class ImageSerializer(serializers.ModelSerializer):
         model = Image
         fields = ['id', 'sender', 'prompt_text', 'image_url', 'created_at']
 
+# Serializer mới để validate dữ liệu đầu vào khi lưu ảnh
+class MinimalImageRecordInputSerializer(serializers.Serializer):
+    chat_id = serializers.IntegerField(required=True)
+    prompt_text = serializers.CharField(required=True)
+    image_url_cloudinary = serializers.URLField(required=True)
+    sender = serializers.CharField(required=False, default="AI_Generated_Image")
+
 class ChatTurnSerializer(serializers.ModelSerializer):
     # Đảm bảo tên trường không trùng với related_name, hoặc bỏ source nếu trùng
     chatbot_messages = ChatbotMessageSerializer(many=True, read_only=True, source='chatbotmessages')

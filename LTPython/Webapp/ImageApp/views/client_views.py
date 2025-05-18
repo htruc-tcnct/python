@@ -17,10 +17,74 @@ from ImageApp.serializers import (
     ChatDetailSerializer, 
     ChatTurnSerializer, 
     ChatbotMessageSerializer,
-    ImageSerializer
+    ImageSerializer,
+    MinimalImageRecordInputSerializer
 )
 
-
+# New view for saving generated images
+class SaveGeneratedImageAPIView(APIView):
+    def post(self, request):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return Response(
+                {"detail": "Authentication credentials were not provided."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        token_str = auth_header.split(" ")[1]
+        
+        try:
+            payload = jwt.decode(token_str, settings.SECRET_KEY, algorithms=["HS256"])
+            user_id = payload.get("user_id")
+            
+            if not user_id:
+                return Response({"detail": "Invalid token structure"}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            user = User.objects.filter(id=user_id).first()
+            if not user:
+                return Response({"detail": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+            # Validate input data
+            serializer = MinimalImageRecordInputSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            validated_data = serializer.validated_data
+            chat_id = validated_data['chat_id']
+            prompt_text = validated_data['prompt_text']
+            image_url = validated_data['image_url_cloudinary']
+            sender = validated_data.get('sender', 'AI_Generated_Image')
+            
+            try:
+                # Get the chat and verify ownership
+                chat = Chat.objects.get(id=chat_id, user=user)
+                
+                # Create a new chat turn with the next turn number
+                last_turn = ChatTurn.objects.filter(chat=chat).order_by('-turn_number').first()
+                turn_number = (last_turn.turn_number + 1) if last_turn else 1
+                chat_turn = ChatTurn.objects.create(chat=chat, turn_number=turn_number)
+                
+                # Create the image record
+                image = Image.objects.create(
+                    chat_turn=chat_turn,
+                    sender=sender,
+                    prompt_text=prompt_text,
+                    image_url=image_url
+                )
+                
+                # Return success response with the created image data
+                return Response({
+                    "message": "Image saved successfully",
+                    "chat_turn_id": chat_turn.id,
+                    "image": ImageSerializer(image).data
+                }, status=status.HTTP_201_CREATED)
+                
+            except Chat.DoesNotExist:
+                return Response({"error": "Chat not found or unauthorized"}, status=status.HTTP_404_NOT_FOUND)
+                
+        except jwt.ExpiredSignatureError:
+            return Response({"detail": "Token has expired"}, status=status.HTTP_401_UNAUTHORIZED)
+        except jwt.InvalidTokenError:
+            return Response({"detail": "Invalid token"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class UpdateNameImageChatAPIView(APIView):

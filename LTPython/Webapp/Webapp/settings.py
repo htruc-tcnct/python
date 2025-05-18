@@ -26,7 +26,7 @@ SECRET_KEY = '123'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
