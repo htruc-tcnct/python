@@ -172,6 +172,38 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default="docsync9@gmail.com")
-EMAIL_HOST_PASSWORD = "atnrwrsaogncpjcs"  # App Password
-DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER', default="docsync9@gmail.com")
+EMAIL_HOST_USER = "docsync9@gmail.com"
+EMAIL_HOST_PASSWORD = "atnrwrsaogncpjcs"
+DEFAULT_FROM_EMAIL = "docsync9@gmail.com"
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': 'django_email.log',
+        },
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'django.security': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'django.core.mail': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}

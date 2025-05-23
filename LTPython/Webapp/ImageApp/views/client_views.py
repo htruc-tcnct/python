@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMessage, send_mail
 from django.db.models import Prefetch
 from django.utils.crypto import get_random_string
 from datetime import datetime, timedelta, timezone
@@ -20,6 +20,9 @@ from ImageApp.serializers import (
     ImageSerializer,
     MinimalImageRecordInputSerializer
 )
+
+# Get logger
+logger = logging.getLogger('django.core.mail')
 
 # New view for saving generated images
 class SaveGeneratedImageAPIView(APIView):
@@ -696,7 +699,7 @@ class ClientResetPasswordAPIView(APIView):
             )
 
         try:
-            print(f"[Reset Password] Looking for user with email: {email}")
+            logger.debug(f"[Reset Password] Looking for user with email: {email}")
             user = User.objects.get(email=email)
             new_password = get_random_string(length=12)
             subject = "Your New Password"
@@ -716,72 +719,65 @@ Your Application Team
             """
 
             try:
-                print(f"[Reset Password] Creating email message for: {email}")
-                print(f"[Reset Password] From email: {settings.DEFAULT_FROM_EMAIL}")
-                print(f"[Reset Password] Subject: {subject}")
+                logger.debug(f"[Reset Password] Attempting to send email to: {email}")
+                logger.debug(f"[Reset Password] From: {settings.DEFAULT_FROM_EMAIL}")
+                logger.debug(f"[Reset Password] SMTP Settings: {settings.EMAIL_HOST}:{settings.EMAIL_PORT}")
                 
-                email_message = EmailMessage(
-                    subject,
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [email],
+                # Use send_mail instead of EmailMessage
+                result = send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[email],
+                    fail_silently=False
                 )
                 
-                # Add headers to prevent spam classification
-                email_message.headers = {
-                    'Reply-To': settings.DEFAULT_FROM_EMAIL,
-                    'X-Priority': '1',  # Urgent
-                }
+                logger.debug(f"[Reset Password] Email send result: {result}")
                 
-                print("[Reset Password] Attempting to send email...")
-                result = email_message.send(fail_silently=False)
-                print(f"[Reset Password] Email send result: {result}")
-                
-                # Update password only if email was sent (result should be 1)
                 if result == 1:
                     user.password_hash = make_password(new_password)
                     user.save()
-                    print(f"[Reset Password] Password updated successfully for user: {user.email}")
+                    logger.debug(f"[Reset Password] Password updated for user: {email}")
                     return Response(
                         {
                             'message': 'New password has been sent to your email!',
                             'email_sent': True,
-                            'recipient': email
+                            'recipient': email,
+                            'smtp_result': result
                         }, 
                         status=status.HTTP_200_OK
                     )
                 else:
-                    print(f"[Reset Password] Email sending failed with result: {result}")
+                    logger.error(f"[Reset Password] Failed to send email. Result: {result}")
                     return Response(
                         {
-                            'error': 'Failed to send email. Please try again later.',
-                            'detail': f'Email send result: {result}'
+                            'error': 'Failed to send email',
+                            'detail': f'SMTP server returned: {result}'
                         }, 
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
                     
             except Exception as e:
-                print(f"[Reset Password] Email sending failed with error: {str(e)}")
-                print(f"[Reset Password] Email settings: HOST={settings.EMAIL_HOST}, PORT={settings.EMAIL_PORT}")
-                print(f"[Reset Password] Using TLS: {settings.EMAIL_USE_TLS}")
+                logger.error(f"[Reset Password] Error sending email: {str(e)}")
                 return Response(
                     {
-                        'error': 'Failed to send email. Please try again later.',
+                        'error': 'Failed to send email',
                         'detail': str(e)
                     }, 
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
+                
         except User.DoesNotExist:
-            print(f"[Reset Password] No user found with email: {email}")
+            logger.warning(f"[Reset Password] No user found with email: {email}")
             return Response(
                 {'error': 'No account found with this email address'}, 
                 status=status.HTTP_404_NOT_FOUND
             )
         except Exception as e:
-            print(f"[Reset Password] Password reset failed with error: {str(e)}")
+            logger.error(f"[Reset Password] Unexpected error: {str(e)}")
             return Response(
                 {
-                    'error': 'An unexpected error occurred. Please try again later.',
+                    'error': 'An unexpected error occurred',
                     'detail': str(e)
                 }, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
