@@ -689,26 +689,72 @@ class ClientLoginUserAPIView(APIView):
 class ClientResetPasswordAPIView(APIView):
     def post(self, request):
         email = request.data.get('email')
+        if not email:
+            return Response(
+                {'error': 'Email is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         try:
             user = User.objects.get(email=email)
             new_password = get_random_string(length=12)
             subject = "Your New Password"
-            message = f"Hello {user.name},\n\nYour new password is: {new_password}\n\nPlease change it after logging in."
+            message = f"""
+Hello {user.name},
+
+You have requested to reset your password. Here is your new password:
+
+{new_password}
+
+For security reasons, please change this password immediately after logging in.
+
+If you did not request this password reset, please contact us immediately.
+
+Best regards,
+Your Application Team
+            """
             try:
                 email_message = EmailMessage(
                     subject,
                     message,
-                    settings.EMAIL_HOST_USER,
+                    settings.DEFAULT_FROM_EMAIL,
                     [email],
                 )
                 email_message.send(fail_silently=False)
+                
+                # Only update password if email was sent successfully
                 user.password_hash = make_password(new_password)
                 user.save()
-                return Response({'message': 'New password has been sent to your email!'}, status=status.HTTP_200_OK)
+                
+                return Response(
+                    {'message': 'New password has been sent to your email!'}, 
+                    status=status.HTTP_200_OK
+                )
             except Exception as e:
-                return Response({'error': f'Failed to send email: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                # Log the error for debugging (you should set up proper logging)
+                print(f"Email sending failed: {str(e)}")
+                return Response(
+                    {
+                        'error': 'Failed to send email. Please try again later.',
+                        'detail': str(e) if settings.DEBUG else None
+                    }, 
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
         except User.DoesNotExist:
-            return Response({'error': 'Email not found!'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {'error': 'No account found with this email address'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            # Log the error for debugging (you should set up proper logging)
+            print(f"Password reset failed: {str(e)}")
+            return Response(
+                {
+                    'error': 'An unexpected error occurred. Please try again later.',
+                    'detail': str(e) if settings.DEBUG else None
+                }, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 # API xem thông tin người dùng
 class ClientViewUserInfoAPIView(APIView):

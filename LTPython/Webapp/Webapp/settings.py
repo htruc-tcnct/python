@@ -168,9 +168,13 @@ REST_FRAMEWORK = {
 
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com" 
+EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
-EMAIL_HOST_USER = "docsync9@gmail.com"  # Thay bằng user từ Mailtrap
-EMAIL_HOST_PASSWORD = config('GMAIL_PASSWORD')  # Thay bằng password từ Mailtrap
 EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = "docsync9@gmail.com"
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default="docsync9@gmail.com")
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default="atnrwrsaogncpjcs")
+DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER', default="docsync9@gmail.com")
+
+# For development/testing, you can use the console backend
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
