@@ -696,6 +696,7 @@ class ClientResetPasswordAPIView(APIView):
             )
 
         try:
+            print(f"[Reset Password] Looking for user with email: {email}")
             user = User.objects.get(email=email)
             new_password = get_random_string(length=12)
             subject = "Your New Password"
@@ -713,45 +714,75 @@ If you did not request this password reset, please contact us immediately.
 Best regards,
 Your Application Team
             """
+
             try:
+                print(f"[Reset Password] Creating email message for: {email}")
+                print(f"[Reset Password] From email: {settings.DEFAULT_FROM_EMAIL}")
+                print(f"[Reset Password] Subject: {subject}")
+                
                 email_message = EmailMessage(
                     subject,
                     message,
                     settings.DEFAULT_FROM_EMAIL,
                     [email],
                 )
-                email_message.send(fail_silently=False)
                 
-                # Only update password if email was sent successfully
-                user.password_hash = make_password(new_password)
-                user.save()
+                # Add headers to prevent spam classification
+                email_message.headers = {
+                    'Reply-To': settings.DEFAULT_FROM_EMAIL,
+                    'X-Priority': '1',  # Urgent
+                }
                 
-                return Response(
-                    {'message': 'New password has been sent to your email!'}, 
-                    status=status.HTTP_200_OK
-                )
+                print("[Reset Password] Attempting to send email...")
+                result = email_message.send(fail_silently=False)
+                print(f"[Reset Password] Email send result: {result}")
+                
+                # Update password only if email was sent (result should be 1)
+                if result == 1:
+                    user.password_hash = make_password(new_password)
+                    user.save()
+                    print(f"[Reset Password] Password updated successfully for user: {user.email}")
+                    return Response(
+                        {
+                            'message': 'New password has been sent to your email!',
+                            'email_sent': True,
+                            'recipient': email
+                        }, 
+                        status=status.HTTP_200_OK
+                    )
+                else:
+                    print(f"[Reset Password] Email sending failed with result: {result}")
+                    return Response(
+                        {
+                            'error': 'Failed to send email. Please try again later.',
+                            'detail': f'Email send result: {result}'
+                        }, 
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+                    
             except Exception as e:
-                # Log the error for debugging (you should set up proper logging)
-                print(f"Email sending failed: {str(e)}")
+                print(f"[Reset Password] Email sending failed with error: {str(e)}")
+                print(f"[Reset Password] Email settings: HOST={settings.EMAIL_HOST}, PORT={settings.EMAIL_PORT}")
+                print(f"[Reset Password] Using TLS: {settings.EMAIL_USE_TLS}")
                 return Response(
                     {
                         'error': 'Failed to send email. Please try again later.',
-                        'detail': str(e) if settings.DEBUG else None
+                        'detail': str(e)
                     }, 
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
         except User.DoesNotExist:
+            print(f"[Reset Password] No user found with email: {email}")
             return Response(
                 {'error': 'No account found with this email address'}, 
                 status=status.HTTP_404_NOT_FOUND
             )
         except Exception as e:
-            # Log the error for debugging (you should set up proper logging)
-            print(f"Password reset failed: {str(e)}")
+            print(f"[Reset Password] Password reset failed with error: {str(e)}")
             return Response(
                 {
                     'error': 'An unexpected error occurred. Please try again later.',
-                    'detail': str(e) if settings.DEBUG else None
+                    'detail': str(e)
                 }, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
